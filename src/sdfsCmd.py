@@ -13,34 +13,76 @@ logger = logging.getLogger("sdfs-client")
 class SdfsCmd(cmd.Cmd):
     prompt = "sdfs> "
 
-    def __init__(self, storage, commands: commands.Commands):
+    def __init__(self, local, cmds: commands.Commands):
         cmd.Cmd.__init__(self)
-        os.chdir(storage)
-        self._cwd = "/"
-        self.cmd = commands
+        self.cmd = cmds
+        os.chdir(local)
+        self.do_cd("/")
+        self.do_usage("")
 
-    def do_du(self, du):
+    def do_usage(self, line):
+        """
+        syntax: dfs
+
+        print common recomendation how to use DFS
+        """
+        print("""
+    GET HELP:
+        help - print avaliable commands
+        help command - print description of command
+        usage - this help
+
+    COMMANDS:
+           du - print info about nodes, its capacity and free space
+           ls - print content of DFS directory
+        local - print content of local directory
+           cd - change cirectory inside DFS tree
+          pwd - print current DWS working directory and local path
+
+        mkdir - create DFS dir
+        rmdir - remove DFS dir
+
+          get - download file to the local directory
+          put - upload file to the DFS
+           rm - remove file
+
+          EOF - quit from client
+
+    DFS NOTES:
+        all filenames should contains only letters [a-zA-Z], digits [0-9],
+        hyphen [-], underscore [_] or dot [.] with maximum length 255
+
+        *_DFS_PATH - path on the dfs system,
+            absolute path starts with '/'
+            relative path is resolved relative to Current Working Directory
+                (print with "pwd" command)
+        *_LOCAL_PATH - path on the current machine,
+            absolute path starts with '/'
+            relative path is resolved relative to --local parameter
+        """)
+
+    def do_du(self, line):
         """
         syntax: du
 
-        prints the common information about DFS:
+        print the common information about DFS:
             - list of nodes
             - capacity and avaliable space per each node
         """
-        print("{:>20}\t{}\t{}\t".format("NODE", "FREE", "CAPACITY"))
-        for node in self.cmd.du():
-            fpath = path.join(line, f)
-            ftype = "D" if os.path.isdir(fpath) else "F"
-            print("{:4} {: >30}\t{}".format(
-                ftype, f, os.path.getsize(fpath)))
-
-        pass
+        raise NotImplementedError()
+        # print("{:>20}\t{}\t{}\t".format("NODE", "FREE", "CAPACITY"))
+        # for node in self.cmd.du():
+        #     print("{:>20} {}\t{}".format(
+        #         node['hostname'],
+        #         node['free'],
+        #         node['capacity']
+        #     ))
 
     def do_get(self, line):
         """
         syntax: get SRC_DFS_PATH DST_LOCAL_PATH
 
-        Download file SRC_DFS_PATH from nodes to the local storage as DST_LOCAL_PATH
+        Download file SRC_DFS_PATH from nodes to the local DST_LOCAL_PATH
         """
         # check characters, split into 2 parts
         # relative paths -> absolute paths
@@ -57,7 +99,7 @@ class SdfsCmd(cmd.Cmd):
         """
         syntax: put SRC_LOCAL_PATH DST_DFS_PATH
 
-        Upload file SRC_LOCAL_PATH from local storage to DST_DFS_PATH
+        Upload local SRC_LOCAL_PATH file to DST_DFS_PATH
         """
         # check characters, split into 2 parts
         # relative paths -> absolute paths
@@ -97,50 +139,63 @@ class SdfsCmd(cmd.Cmd):
         """
         syntax: pwd
 
-        Print Current Working Directory (CWD) and Storage path
+        Print Current Working Directory (CWD) and local path
         """
-        print("CWD: %s\nSTORAGE: %s" % (self._cwd, os.getcwd()))
+        print("CWD: %s\nLOCAL: %s" % (self._cwd, os.getcwd()))
 
     def do_ls(self, line):
+        """
+        syntax: ls [DFS_DIR_PATH]
+
+        list files of DFS_DIR_PATH.
+        if DFS_DIR_PATH is not specified, current working DFS directory will be used
+        """
         if line == "":
-            line = "/"
+            line = self._cwd
+
+        if not path.isabs(line):
+            line = path.normpath(path.join(self._cwd, line))
+
+        print("{:4} {: >30}\t{}".format("TYPE", "FILENAME", "FILESIZE"))
+        for f in self.cmd.ls(line):
+            ftype = "D" if f['type'] == proto.DIRECTORY else "F"
+            print("{:4} {: >30}\t{}".format(
+                ftype, path.basename(f['path']), f['size']))
+        pass
+
+    def do_cd(self, line):
+        """
+        syntax: cd [DFS_DIR_PATH]
+
+        Change current working DFS directory to DFS_DIR_PATH.
+        if DFS_DIR_PATH is not specified, current working directory will set to "/"
+        """
+        if line == "":
+            self._cwd = "/"
 
         if not path.isabs(line):
             line = path.normpath(path.join(self._cwd, line))
 
         f = self.cmd.stat(line)
         if f['type'] != proto.DIRECTORY:
-            raise ValueError("'%s' is not a directory".format(line))
+            raise ValueError("'{0}' is not a directory".format(line))
 
-        print("{:4} {: >30}\t{}".format("TYPE", "FILENAME", "FILESIZE"))
-        for f in self.cmd.ls(line):
-            ftype = "D" if f['type'] == proto.DIRECTORY else "F"
-            print("{:4} {: >30}\t{}".format(
-                ftype, f['path'], f['size']))
-        pass
-
-    def do_cd(self, line):
-        if line == "":
-            self._cwd = "/"
-
-        if not path.isabs(line):
-            line = path.normpath(path.join(self._cwd, line))
-        pass
-
-    # working with files
-    def do_mv(self, line):
-        pass
-
-    def do_cp(self, line):
+        self._cwd = line
+        self.prompt = "sdfs:{0}> ".format(line)
         pass
 
     def do_rm(self, line):
+        """
+        syntax: rm DFS_FILE_PATH
+
+        Remove file, which is blased according DFS_FILE_PATH
+        """
         pass
 
 # uploading / downloading
-    def do_storage(self, line):
+    def do_local(self, line):
         """
-        syntax: storage [LOCAL_DIR]
+        syntax: local [LOCAL_DIR]
 
         List content of LOCAL_DIR
         """
@@ -156,80 +211,28 @@ class SdfsCmd(cmd.Cmd):
             print("{:4} {: >30}\t{}".format(
                 ftype, f, os.path.getsize(fpath)))
 
-    def do_quit(self, _):
+    def do_mkdir(self, line):
+        """
+        syntax: mkdir DFS_DIR_PATH
+
+        Create DFS directory on DFS_DIR_PATH
+        """
+        pass
+
+    def do_rmdir(self, line):
+        """
+        syntax: rmdir DFS_DIR_PATH
+
+        Remove directory DFS_DIR_PATH from DFS
+        """
+        pass
+
+    def do_EOF(self, _):
+        """
+        syntax: EOF
+
+        Exit from session
+        """
+
         print("quiting...")
         return True
-
-    do_EOF = do_quit
-
-
-def parse_args():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--storage",
-                        default=os.getcwd(),
-                        help="""
-                        local directory for exchanging file with DFS.
-                        Current Working Directory by default.
-                        """,
-                        )
-    parser.add_argument("--logfile",
-                        default=None,
-                        help="""Path to log file""",)
-
-    args = parser.parse_args()
-
-    if path.isdir(args.storage):
-        args.storage = path.abspath(args.storage)
-    else:
-        print("""ERROR:
-ERROR: storage is not a local directory
-ERROR:""")
-        parser.print_help()
-        exit(-1)
-
-    return args
-
-
-def setup_logger(log_file):
-    if log_file:
-        fh = logging.FileHandler(log_file)
-        fh.setLevel(logging.INFO)
-        logger.addHandler(fh)
-
-    ch = logging.StreamHandler()
-    ch.setLevel(getattr(logging, os.getenv('LOG_LEVEL', 'ERROR')))
-    logger.addHandler(ch)
-
-
-if __name__ == "__main__":
-    args = parse_args()
-    setup_logger(args.logfile)
-
-    print("""Welcome to DFS interactive client!
-
-        use "help" to print avaliable commands
-        use "help command" to print description of command
-
-        COMMON NOTES:
-            all filenames can contains only letters [a-zA-Z], digits [0-9],
-            hyphen [-], underscore [_] or dot [.] with maximum length 255
-
-            *_DFS_PATH - path on the dfs system,
-                absolute path starts with '/'
-                relative path is resolved relative to Current Working Directory
-                    (print with "pwd" command)
-            *_LOCAL_PATH - path on the current machine,
-                absolute path starts with '/'
-                relative path is resolved relative to --storage parameter
-        """)
-    quit = False
-    sdfsCmd = SdfsCmd(args.storage, commands.HttpCommands('localhost:8080'))
-    while not quit:
-        try:
-            sdfsCmd.cmdloop()
-            quit = True
-        except KeyboardInterrupt:
-            print("Use 'quit' or C^D to exiting")
-        except Exception as e:
-            print("[ERROR] ", e)
