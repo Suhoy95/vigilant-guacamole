@@ -5,3 +5,4 @@ sdfs_client.egg-info
 *.pyc
 
 *.log
+tmp/

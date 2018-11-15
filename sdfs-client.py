@@ -2,6 +2,7 @@
 
 import os
 import traceback
+import logging
 from os import path
 
 
@@ -24,6 +25,14 @@ def parse_args():
                         default=None,
                         help="""Path to log file""",
                         )
+    parser.add_argument("--loglevel",
+                        default="WARNING",
+                        help="Set logging level",
+                        )
+    parser.add_argument("--nameserver",
+                        default=None,
+                        help="""address of nameserver in format [hostname]:[port]"""
+                        )
 
     args = parser.parse_args()
 
@@ -36,28 +45,38 @@ ERROR:""")
         parser.print_help()
         exit(-1)
 
+    numeric_level = getattr(logging, args.loglevel, None)
+    if not isinstance(numeric_level, int):
+        print("""ERROR:
+ERROR: Invalid logging level: {}
+ERROR: """.format(args.loglevel))
+        exit(-1)
+
+    logging.basicConfig(
+        level=numeric_level,
+        filename=args.logfile,
+        format='%(asctime)s %(levelname)s %(message)s')
+
     return args
-
-
-def setup_logger(log_file):
-    # if log_file:
-    #     fh = logging.FileHandler(log_file)
-    #     fh.setLevel(logging.INFO)
-    #     logger.addHandler(fh)
-
-    # ch = logging.StreamHandler()
-    # ch.setLevel(getattr(logging, os.getenv('LOG_LEVEL', 'ERROR')))
-    # logger.addHandler(ch)
-    pass
 
 
 if __name__ == "__main__":
     args = parse_args()
-    setup_logger(args.logfile)
 
-    print()
+    logging.debug("Starting client:")
+    logging.debug('--local %s', args.local)
+    logging.debug('--logfile %s', args.logfile if args.logfile else 'NULL') # pay respect to C
+    logging.debug('--loglevel %s', args.loglevel)
+    logging.debug('--nameserver %s', args.nameserver)
+
     quit = False
-    cmds = HttpCommands('localhost:8080')
+
+    cmds = None
+    try:
+        cmds = HttpCommands('localhost:8080')
+    except:
+        print("Faild to connect to {}".format(args.nameserver))
+        exit(-1)
     # cmds = MemoryCommands()
     sdfsCmd = SdfsCmd(args.local, cmds)
     while not quit:
