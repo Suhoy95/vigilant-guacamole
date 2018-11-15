@@ -6,6 +6,7 @@ from os import path
 
 import src.proto as proto
 import src.commands as commands
+from src.exceptions import *
 
 logger = logging.getLogger("sdfs-client")
 
@@ -69,14 +70,13 @@ class SdfsCmd(cmd.Cmd):
             - list of nodes
             - capacity and avaliable space per each node
         """
-        raise NotImplementedError()
-        # print("{:>20}\t{}\t{}\t".format("NODE", "FREE", "CAPACITY"))
-        # for node in self.cmd.du():
-        #     print("{:>20} {}\t{}".format(
-        #         node['hostname'],
-        #         node['free'],
-        #         node['capacity']
-        #     ))
+        print("{:>40}\t{}\t{}\t".format("NODE", "FREE", "CAPACITY"))
+        for node in self.cmd.du():
+            print("{:>40}\t{}\t{}".format(
+                node['name'],
+                node['free'],
+                node['capacity']
+            ))
 
     def do_get(self, line):
         """
@@ -93,7 +93,19 @@ class SdfsCmd(cmd.Cmd):
         # GET /storage?path=DST_LOCAL_PATH -> operation
         # GET node/file?op=operation
         # write respanse to SRC_DFS_PATH
-        pass
+        parts = line.split()
+        if len(parts) != 2:
+            print(
+                "Wrong amount of arguments. Expect: 2, actual: {0}", len(parts))
+            return
+
+        dst_dfs_path = self._to_abs_path(parts[0])
+
+        file = parts[1]
+        src_local_path = self._to_local_abs_path(file)
+
+        # TODO: check overwriting
+        self.cmd.get(dst_dfs_path, src_local_path)
 
     def do_put(self, line):
         """
@@ -101,18 +113,6 @@ class SdfsCmd(cmd.Cmd):
 
         Upload local SRC_LOCAL_PATH file to DST_DFS_PATH
         """
-        # check characters, split into 2 parts
-        # relative paths -> absolute paths
-        # check that SRC_LOCAL_PATH file exists
-        # check that SRC_LOCAL_PATH is readable
-        # get filesize of SRC_LOCAL_PATH
-        # check the DST_DFS_PATH exists, ask about overwrite
-        #   GET /properties?path=DST_DFS_PATH
-        #     -> can be dir is not exist
-        # open DST_DFS_PATH for writing
-        #   POST /storage {path, filesize} -> operations
-        # read file SRC_LOCAL_PATH
-        # POST node/write?operations&filedata -> ok
         parts = line.split()
         if len(parts) != 2:
             print(
@@ -120,20 +120,19 @@ class SdfsCmd(cmd.Cmd):
             return
 
         file = parts[0]
-        path = os.path.join(os.getcwd(), file)
+        src_local_path = self._to_local_abs_path(file)
 
-        if not os.path.exists(path):
+        if not os.path.exists(src_local_path):
             print("File {0} does not exist".format(file))
             return
 
-        if not os.path.isfile(path):
+        if not os.path.isfile(src_local_path):
             print("{0} is not regular file".format(file))
             return
 
-        tgt = parts[1] if parts[1].startswith('/') \
-            else os.path.join(self._cwd, parts[1])
+        dst_dfs_path = self._to_abs_path(parts[1])
 
-        print("coping from {0} to {1}".format(path, tgt))
+        self.cmd.put(src_local_path, dst_dfs_path)
 
     def do_pwd(self, line):
         """
@@ -150,11 +149,7 @@ class SdfsCmd(cmd.Cmd):
         list files of DFS_DIR_PATH.
         if DFS_DIR_PATH is not specified, current working DFS directory will be used
         """
-        if line == "":
-            line = self._cwd
-
-        if not path.isabs(line):
-            line = path.normpath(path.join(self._cwd, line))
+        line = self._to_abs_path(line, isdir=True)
 
         print("{:4} {: >30}\t{}".format("TYPE", "FILENAME", "FILESIZE"))
         for f in self.cmd.ls(line):
@@ -170,11 +165,8 @@ class SdfsCmd(cmd.Cmd):
         Change current working DFS directory to DFS_DIR_PATH.
         if DFS_DIR_PATH is not specified, current working directory will set to "/"
         """
-        if line == "":
-            self._cwd = "/"
 
-        if not path.isabs(line):
-            line = path.normpath(path.join(self._cwd, line))
+        line = self._to_abs_path(line, isdir=True)
 
         f = self.cmd.stat(line)
         if f['type'] != proto.DIRECTORY:
@@ -190,7 +182,13 @@ class SdfsCmd(cmd.Cmd):
 
         Remove file, which is blased according DFS_FILE_PATH
         """
-        pass
+        line = self._to_abs_path(line)
+
+        f = self.cmd.stat(line)
+        if f['type'] != proto.FILE:
+            raise ValueError("'{0}' is not a file".format(line))
+
+        self.cmd.rm(line)
 
 # uploading / downloading
     def do_local(self, line):
@@ -199,17 +197,17 @@ class SdfsCmd(cmd.Cmd):
 
         List content of LOCAL_DIR
         """
-        line = "." if line == "" else line
+        line = self._to_local_abs_path(line)
 
         if not path.isdir(line):
-            raise ValueError("%s is not a local directory" % (line, ))
+            raise ValueError("'{}' is not a local directory".format(line))
 
         print("{:4} {: >30}\t{}".format("TYPE", "FILENAME", "FILESIZE"))
         for f in os.listdir(line):
             fpath = path.join(line, f)
             ftype = "D" if os.path.isdir(fpath) else "F"
             print("{:4} {: >30}\t{}".format(
-                ftype, f, os.path.getsize(fpath)))
+                ftype, path.basename(f), os.path.getsize(fpath)))
 
     def do_mkdir(self, line):
         """
@@ -217,7 +215,8 @@ class SdfsCmd(cmd.Cmd):
 
         Create DFS directory on DFS_DIR_PATH
         """
-        pass
+        line = self._to_abs_path(line, isdir=True)
+        self.cmd.mkdir(line)
 
     def do_rmdir(self, line):
         """
@@ -225,7 +224,14 @@ class SdfsCmd(cmd.Cmd):
 
         Remove directory DFS_DIR_PATH from DFS
         """
-        pass
+        line = self._to_abs_path(line, isdir=True)
+        if len(self.cmd.ls(line)) > 0:
+            confirm = input(
+                "'{}' is not empty. Remove recursively [y/N]?".format(line))
+            if confirm.lower() != 'y':
+                return
+
+        self.cmd.rm(line, recursive=True)
 
     def do_EOF(self, _):
         """
@@ -236,3 +242,23 @@ class SdfsCmd(cmd.Cmd):
 
         print("quiting...")
         return True
+
+    def _to_abs_path(self, line, isdir=False):
+        if not path.isabs(line):
+            line = path.join(self._cwd, line)
+
+        line = path.normpath(line)
+
+        # TODO: remove
+        if isdir and line != '/':
+            line += '/'
+
+        return line
+
+    def _to_local_abs_path(self, line):
+        if not path.isabs(line):
+            line = path.join(os.getcwd(), line)
+
+        line = path.normpath(line)
+
+        return line

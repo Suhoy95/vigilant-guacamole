@@ -9,6 +9,7 @@ from src.sdfsCmd import SdfsCmd
 from src.commands.httpCommands import HttpCommands
 from src.commands.memoryCommands import MemoryCommands
 
+
 def parse_args():
     import argparse
     parser = argparse.ArgumentParser()
@@ -56,8 +57,8 @@ if __name__ == "__main__":
 
     print()
     quit = False
-    # cmds = HttpCommands('localhost:8080')
-    cmds = MemoryCommands()
+    cmds = HttpCommands('localhost:8080')
+    # cmds = MemoryCommands()
     sdfsCmd = SdfsCmd(args.local, cmds)
     while not quit:
         try:
@@ -68,5 +69,5 @@ if __name__ == "__main__":
         except NotImplementedError as e:
             traceback.print_tb(e.__traceback__)
         except Exception as e:
+            traceback.print_tb(e.__traceback__)
             print("[ERROR] ", type(e), e)
-            
