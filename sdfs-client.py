@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
-
+import argparse
 import os
 import traceback
 import logging
 from os import path
 
-
 from src.sdfsCmd import SdfsCmd
+from src.exceptions import *
 from src.commands.httpCommands import HttpCommands
-from src.commands.memoryCommands import MemoryCommands
 
 
 def parse_args():
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--local",
                         default=os.getcwd(),
@@ -27,7 +25,7 @@ def parse_args():
                         )
     parser.add_argument("--loglevel",
                         default="WARNING",
-                        help="Set logging level",
+                        help="Set logging level (DEBUG, INFO, WARNING, ERROR)",
                         )
     parser.add_argument("--nameserver",
                         default=None,
@@ -55,7 +53,7 @@ ERROR: """.format(args.loglevel))
     logging.basicConfig(
         level=numeric_level,
         filename=args.logfile,
-        format='%(asctime)s %(levelname)s %(message)s')
+        format='%(asctime)s %(levelname)s %(module)s | %(message)s')
 
     return args
 
@@ -65,7 +63,8 @@ if __name__ == "__main__":
 
     logging.debug("Starting client:")
     logging.debug('--local %s', args.local)
-    logging.debug('--logfile %s', args.logfile if args.logfile else 'NULL') # pay respect to C
+    logging.debug('--logfile %s',
+                  args.logfile if args.logfile else 'NULL')  # pay respect to C
     logging.debug('--loglevel %s', args.loglevel)
     logging.debug('--nameserver %s', args.nameserver)
 
@@ -73,11 +72,13 @@ if __name__ == "__main__":
 
     cmds = None
     try:
-        cmds = HttpCommands('localhost:8080')
+        # HttpCommands() will do cd("/") -> stat("/")
+        # that will check the connection to the nameserver
+        cmds = HttpCommands(args.nameserver)
     except:
         print("Faild to connect to {}".format(args.nameserver))
         exit(-1)
-    # cmds = MemoryCommands()
+
     sdfsCmd = SdfsCmd(args.local, cmds)
     while not quit:
         try:
@@ -85,8 +86,8 @@ if __name__ == "__main__":
             quit = True
         except KeyboardInterrupt:
             print("Use C^D to exiting")
-        except NotImplementedError as e:
-            traceback.print_tb(e.__traceback__)
+        except DfsException as e:
+            print(e)
         except Exception as e:
-            traceback.print_tb(e.__traceback__)
             print("[ERROR] ", type(e), e)
+            logging.exception("[ERROR]")

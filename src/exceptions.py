@@ -3,5 +3,5 @@ class DfsException(Exception):
     pass
 
 
-class DfsHttpException(Exception):
+class DfsHttpException(DfsException):
     pass
