@@ -6,3 +6,4 @@ sdfs_client.egg-info
 
 *.log
 tmp/
+storage1/

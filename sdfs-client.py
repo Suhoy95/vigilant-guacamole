@@ -8,6 +8,7 @@ from os import path
 from src.sdfsCmd import SdfsCmd
 from src.exceptions import *
 from src.commands.httpCommands import HttpCommands
+from src.commands.rpycCommands import RpycCommands
 
 
 def parse_args():
@@ -74,7 +75,8 @@ if __name__ == "__main__":
     try:
         # HttpCommands() will do cd("/") -> stat("/")
         # that will check the connection to the nameserver
-        cmds = HttpCommands(args.nameserver)
+        # cmds = HttpCommands(args.nameserver)
+        cmds = RpycCommands("localhost", 8081)
     except:
         print("Faild to connect to {}".format(args.nameserver))
         exit(-1)
