@@ -17,8 +17,8 @@ class HttpCommands(Commands):
         self.ns_address = ns_address
 
     def stat(self, path):
-        url = "http://%s/properties" % (self.ns_address, )
-        resp = requests.get(url, params={'path': path})
+        url = "https://%s/properties" % (self.ns_address, )
+        resp = requests.get(url, params={'path': path}, verify=False)
 
         if resp.status_code == 400:
             error = resp.json()
@@ -33,8 +33,8 @@ class HttpCommands(Commands):
         return resp.json()
 
     def du(self):
-        url = "http://%s/nodes/status" % (self.ns_address,)
-        resp = requests.get(url)
+        url = "https://%s/nodes/status" % (self.ns_address,)
+        resp = requests.get(url, verify=False)
 
         if resp.status_code == 400:
             error = resp.json()
@@ -51,8 +51,8 @@ class HttpCommands(Commands):
     def get(self, src_dfs_path, dst_local_path, recursive=False):
 
         # go to NameServer to get operation structure (a.k.a ticket for storage server)
-        url = "http://%s/storage" % (self.ns_address, )
-        resp = requests.get(url, params={'path': src_dfs_path})
+        url = "https://%s/storage" % (self.ns_address, )
+        resp = requests.get(url, params={'path': src_dfs_path}, verify=False)
 
         if resp.status_code == 400:
             error = resp.json()
@@ -67,9 +67,9 @@ class HttpCommands(Commands):
         operation = resp.json()
 
         logging.debug(repr(operation))
-        url = "http://{}/storage/download".format(operation['nodeAddress'])
+        url = "https://{}/storage/download".format(operation['nodeAddress'])
 
-        resp = requests.post(url, json=operation)
+        resp = requests.post(url, json=operation, verify=False)
         if resp.status_code == 400:
             error = resp.json()
             raise DfsHttpException("""[ERROR] Could not perform
@@ -86,12 +86,12 @@ class HttpCommands(Commands):
     def put(self, local_path, dfs_path, recursive=False):
         filesize = path.getsize(local_path)
 
-        url = "http://%s/storage" % (self.ns_address, )
+        url = "https://%s/storage" % (self.ns_address, )
         resp = requests.post(url, json={
             'path': dfs_path,
             'type': FILE,
             'size': filesize,
-        })
+        }, verify=False)
 
         if resp.status_code == 400:
             error = resp.json()
@@ -105,11 +105,13 @@ class HttpCommands(Commands):
 
         operation = resp.json()
 
-        url = "http://{}/storage/upload".format(operation['nodeAddress'])
+        url = "https://{}/storage/upload".format(operation['nodeAddress'])
         files = {'file': open(local_path, 'rb')}
 
         resp = requests.post(
-            url, params={'operation': json.dumps(operation)}, files=files)
+            url, params={'operation': json.dumps(operation)},
+            files=files,
+            verify=False)
 
         if resp.status_code == 400:
             error = resp.json()
@@ -130,8 +132,9 @@ class HttpCommands(Commands):
             for f in self.ls(dfs_path):
                 self.rm(f['path'], recursive=recursive, fstat=f)
 
-        url = "http://%s/storage" % (self.ns_address,)
-        resp = requests.delete(url, params={'path': fstat['path']})
+        url = "https://%s/storage" % (self.ns_address,)
+        resp = requests.delete(
+            url, params={'path': fstat['path']}, verify=False)
 
         if resp.status_code == 400:
             error = resp.json()
@@ -144,8 +147,8 @@ class HttpCommands(Commands):
                 "Unexpected status_code {}".format(resp.status_code))
 
     def ls(self, dfs_dir):
-        url = "http://%s/list" % (self.ns_address,)
-        resp = requests.get(url, params={'path': dfs_dir})
+        url = "https://%s/list" % (self.ns_address,)
+        resp = requests.get(url, params={'path': dfs_dir}, verify=False)
 
         if resp.status_code == 400:
             error = resp.json()
@@ -167,12 +170,12 @@ class HttpCommands(Commands):
         return files
 
     def mkdir(self, dfs_dir):
-        url = "http://%s/storage" % (self.ns_address, )
+        url = "https://%s/storage" % (self.ns_address, )
         resp = requests.post(url, json={
             'type': DIRECTORY,
             'path': dfs_dir,
             'size': 0
-        })
+        }, verify=False)
 
         if resp.status_code == 400:
             error = resp.json()

@@ -4,4 +4,4 @@ python sdfs-client.py \
     --local tmp \
     --loglevel DEBUG \
     --logfile tmp/debug.log \
-    --nameserver localhost:8080
+    --nameserver localhost:8443
