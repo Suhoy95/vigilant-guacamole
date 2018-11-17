@@ -30,3 +30,13 @@ class StorageService(rpyc.Service):
         logging.debug("rm %s", fullpath)
         os.remove(fullpath)
 
+    def exposed_write(self, dfs_path, infile):
+        fullpath = path.join(self._root, '.' + dfs_path)
+        logging.debug("write %s", fullpath)
+        with open(fullpath, "bw") as outfile:
+            while True:
+                data = infile.read(1024)
+                if data == b"":
+                    break
+                outfile.write(data)
+            infile.close()
