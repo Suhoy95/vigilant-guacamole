@@ -3,6 +3,7 @@ import argparse
 import os
 import traceback
 import logging
+import requests
 from os import path
 
 from src.sdfsCmd import SdfsCmd
@@ -88,6 +89,9 @@ if __name__ == "__main__":
             print("Use C^D to exiting")
         except DfsException as e:
             print(e)
+        except requests.exceptions.ConnectionError:
+            print("Lost connection with NameServer")
+            quit = True
         except Exception as e:
             print("[ERROR] ", type(e), e)
             logging.exception("[ERROR]")
