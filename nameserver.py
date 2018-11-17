@@ -1,4 +1,5 @@
 import logging
+import json
 import rpyc
 
 from os import path
@@ -30,15 +31,13 @@ def File(path, size):
 Storages = list()
 
 # TODO: loading from file
-Tree = {
-    '/': Dir('/', ['hello.txt']),
-    '/hello.txt': File('/hello.txt', 16)
-}
+Tree = None
 
 
-#TODO: safe dumping Tree to the file
-def dump_tree(Tree):
-    pass
+def dump_tree(tree):
+    # TODO: write to tmpfile -> rename
+    with open("tree.json", "w") as f:
+        f.write(json.dumps(tree, indent=4))
 
 
 class NameServerService(rpyc.Service):
@@ -159,6 +158,13 @@ class NameServerService(rpyc.Service):
 if __name__ == "__main__":
     from rpyc.utils.server import ThreadedServer
     logging.basicConfig(level=logging.DEBUG)
+
+    # TODO: rm
+    from restoretree import restoretree
+    restoretree('storage1/', 'tree.json')
+
+    with open('tree.json', 'r') as f:
+        Tree = json.load(f)
 
     t = ThreadedServer(NameServerService, port=8081)
     t.start()

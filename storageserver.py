@@ -5,6 +5,16 @@ import threading
 from os import path
 import os
 
+from os.path import (
+    join,
+    normpath,
+    basename,
+    dirname,
+    isfile,
+    isdir,
+    getsize
+)
+
 RootPath = path.join(os.getcwd(), "storage1")
 
 Hostname = "localhost"
@@ -38,12 +48,23 @@ class StorageService(rpyc.Service):
         logging.debug("rm %s", fullpath)
         os.remove(fullpath)
 
+
+# def check_files(dfs_path, ns):
+#     abspath = normpath(join(RootPath, '.' + dfs_path ))
+#     if isfile(abspath):
+#         md5sum = md5(abspath)
+
+#         if ns.stat(dfs_path)
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     from rpyc.utils.server import ThreadedServer
 
     Ns_conn = rpyc.connect("localhost", port=8081, service=StorageToNameserverService())
+
+    # check_files('/', Ns_conn)
+
     Ns_conn.root.register(Hostname, Port)
     # rpyc.BgServingThread(Ns_conn)
 

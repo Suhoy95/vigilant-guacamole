@@ -1,0 +1,103 @@
+{
+    "/": {
+        "type": "DIRECTORY",
+        "size": 0,
+        "path": "/",
+        "files": [
+            "meter.txt",
+            "a",
+            "hundred.txt",
+            "debug.log",
+            "test"
+        ]
+    },
+    "/meter.txt": {
+        "type": "FILE",
+        "size": 1048576,
+        "path": "/meter.txt",
+        "nodes": [
+            [
+                "localhost",
+                8084
+            ]
+        ],
+        "md5sum": "7118dcb5fa4348933498d12c5ee3c645"
+    },
+    "/a": {
+        "type": "FILE",
+        "size": 14,
+        "path": "/a",
+        "nodes": [
+            [
+                "localhost",
+                8084
+            ]
+        ],
+        "md5sum": "746308829575e17c3331bbcb00c0898b"
+    },
+    "/hundred.txt": {
+        "type": "FILE",
+        "size": 100,
+        "path": "/hundred.txt",
+        "nodes": [
+            [
+                "localhost",
+                8084
+            ]
+        ],
+        "md5sum": "2496b41f6fd18442c6bcc779cc72b918"
+    },
+    "/debug.log": {
+        "type": "FILE",
+        "size": 107421,
+        "path": "/debug.log",
+        "nodes": [
+            [
+                "localhost",
+                8084
+            ]
+        ],
+        "md5sum": "489f37e44c26353c17805f0985838d0e"
+    },
+    "/test": {
+        "type": "DIRECTORY",
+        "size": 0,
+        "path": "/test",
+        "files": [
+            "hundred.txt",
+            "test"
+        ]
+    },
+    "/test/hundred.txt": {
+        "type": "FILE",
+        "size": 100,
+        "path": "/test/hundred.txt",
+        "nodes": [
+            [
+                "localhost",
+                8084
+            ]
+        ],
+        "md5sum": "2c49501f4012c7a67f0f5e832ced7cd4"
+    },
+    "/test/test": {
+        "type": "DIRECTORY",
+        "size": 0,
+        "path": "/test/test",
+        "files": [
+            "hundred.txt"
+        ]
+    },
+    "/test/test/hundred.txt": {
+        "type": "FILE",
+        "size": 100,
+        "path": "/test/test/hundred.txt",
+        "nodes": [
+            [
+                "localhost",
+                8084
+            ]
+        ],
+        "md5sum": "2c49501f4012c7a67f0f5e832ced7cd4"
+    }
+}
