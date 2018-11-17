@@ -3,6 +3,10 @@ import json
 import requests
 import logging
 
+# suppress warning about verifying certificate
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 from .commands import Commands
 from ..exceptions import *
 from ..proto import (
