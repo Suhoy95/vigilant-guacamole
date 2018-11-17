@@ -5,12 +5,10 @@ from src.commands.httpCommands import HttpCommands
 from src.exceptions import *
 
 
-def f():
-    raise SystemExit(1)
-
-
 cmds = HttpCommands("localhost:8080")
 
+
+@pytest.mark.skip
 @pytest.mark.usefixtures("init_db")
 class Test_httpCommands_stat:
     def test_Root(self):
@@ -49,6 +47,7 @@ class Test_httpCommands_put:
     pass
 
 
+@pytest.mark.skip
 class Test_httpCommands_rm:
     def test_rmdir(self):
         try:
@@ -62,7 +61,7 @@ class Test_httpCommands_rm:
             cmds.stat('/test_delete/')
 
 
-
+@pytest.mark.skip
 class Test_httpCommands_ls:
     def test_RootDir(self):
         files = cmds.ls("/")
@@ -86,7 +85,7 @@ class Test_httpCommands_ls:
             cmds.ls("/qwe/qwe/")
 
 
-
+@pytest.mark.skip
 class Test_httpCommands_mkdir:
     def test_mkdir(self):
         try:
@@ -120,6 +119,3 @@ class Test_httpCommands_mkdir:
             pass
         with pytest.raises(DfsHttpException):
             cmds.mkdir('/test/test.txt/')
-
-
-

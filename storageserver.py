@@ -66,25 +66,7 @@ if __name__ == "__main__":
     # check_files('/', Ns_conn)
 
     Ns_conn.root.register(Hostname, Port)
-    # rpyc.BgServingThread(Ns_conn)
 
-
-    # def clock():
-    #     while True:
-    #         try:
-    #             print("serve")
-    #             Ns_conn.serve()
-    #             time.sleep(1)
-    #         except Exception as e:
-    #             print(e)
-
-    # t =threading.Thread(target=clock)
-    # t.start()
-
-    # while True:
-    #     logging.debug("staing alive")
-    #     import time
-    #     time.sleep(1)
     Server = ThreadedServer(StorageService,
                             hostname=Hostname, port=Port, protocol_config={
                                 'allow_public_attrs': True,
