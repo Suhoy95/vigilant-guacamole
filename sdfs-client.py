@@ -70,16 +70,16 @@ if __name__ == "__main__":
 
     quit = False
 
-    cmds = None
+    sdfsCmd = None
     try:
         # HttpCommands() will do cd("/") -> stat("/")
         # that will check the connection to the nameserver
         cmds = HttpCommands(args.nameserver)
+        sdfsCmd = SdfsCmd(args.local, cmds)
     except:
         print("Faild to connect to {}".format(args.nameserver))
         exit(-1)
 
-    sdfsCmd = SdfsCmd(args.local, cmds)
     while not quit:
         try:
             sdfsCmd.cmdloop()
