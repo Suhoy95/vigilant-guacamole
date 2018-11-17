@@ -86,6 +86,39 @@ def st1Conn(storage1):
     conn.close()
 
 
+#
+# storage1 fixtures
+#
+
+
+@pytest.fixture
+def storage2dir(tmpdir):
+    storagePath = path.join(tmpdir, 'storage2')
+    os.mkdir(storagePath)
+    return storagePath
+
+
+@pytest.fixture
+def storage2(ns, nsHostname, nsPort, storage1dir):
+    p = Process(target=lambda: startStorageServer(nsHostname, nsPort,
+                                                  "localhost", 6002,
+                                                  capacity=11111, free=6000,
+                                                  rootPath=storage1dir))
+    p.start()
+    time.sleep(0.5)
+    yield p
+    p.terminate()
+
+
+@pytest.fixture
+def st2Conn(storage1):
+    conn = rpyc.connect("localhost", 6002, config={
+        'allow_public_attrs': True,
+    })
+    yield conn.root
+    conn.close()
+
+
 @pytest.fixture
 def helloFile(tmpdir):
     filename = path.join(tmpdir, 'hello')

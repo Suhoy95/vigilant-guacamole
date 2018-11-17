@@ -34,7 +34,7 @@ class NameServerService(rpyc.Service):
 
     def exposed_register(self, host, port, capacity, free):
         self._role = "storage"
-        self._storage_addr = (host, port)
+        self._storage_addr = [host, port]
         self._capacity = capacity
         self._free = free
         self._st = self._conn.root
@@ -132,3 +132,10 @@ class NameServerService(rpyc.Service):
         self._tree[path.dirname(dfs_path)]['files'].remove(
             path.basename(dfs_path))
         dump_tree(self._tree, self._treefile)
+
+    def exposed_selectStorage(self, size):
+        for s in Storages:
+            if s._free > size:
+                return s._storage_addr
+        else:
+            raise DfsNoFreeStorages()
