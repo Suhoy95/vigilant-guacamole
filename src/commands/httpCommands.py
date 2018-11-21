@@ -1,3 +1,9 @@
+from ..proto import (
+    FILE,
+    DIRECTORY
+)
+from ..exceptions import *
+from .commands import Commands
 import os.path as path
 import json
 import requests
@@ -7,18 +13,29 @@ import logging
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-from .commands import Commands
-from ..exceptions import *
-from ..proto import (
-    FILE,
-    DIRECTORY
-)
-
 
 class HttpCommands(Commands):
 
-    def __init__(self, ns_address):
-        self.ns_address = ns_address
+    def __init__(self, args):
+        self.ns_address = args.nameserver
+
+        url = "https://%s/auth" % (self.ns_address, )
+        resp = requests.post(url, verify=False, json={
+            'username': args.username,
+            'password': args.password
+        })
+
+        if resp.status_code == 400:
+            raise DfsHttpException("Bad username or password")
+
+        if resp.status_code != 200:
+            raise DfsHttpException(
+                "Unexpected status code during authorization: {}\n {}".format(
+                    resp.status_code, resp.text
+                )
+            )
+
+        self.token = resp.json()['token']
 
     def stat(self, path):
         url = "https://%s/properties" % (self.ns_address, )
@@ -137,8 +154,11 @@ class HttpCommands(Commands):
                 self.rm(f['path'], recursive=recursive, fstat=f)
 
         url = "https://%s/storage" % (self.ns_address,)
-        resp = requests.delete(
-            url, params={'path': fstat['path']}, verify=False)
+        resp = requests.delete(url,
+                               verify=False,
+                               params={'path': fstat['path']},
+                               headers={'Authorization': self.token}
+                               )
 
         if resp.status_code == 400:
             error = resp.json()

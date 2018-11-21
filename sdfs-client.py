@@ -32,6 +32,8 @@ def parse_args():
                         default=None,
                         help="""address of nameserver in format [hostname]:[port]"""
                         )
+    parser.add_argument("--username", default=None)
+    parser.add_argument("--password", default=None)
 
     args = parser.parse_args()
 
@@ -56,6 +58,12 @@ ERROR: """.format(args.loglevel))
         filename=args.logfile,
         format='%(asctime)s %(levelname)s %(module)s | %(message)s')
 
+    if args.username is None:
+        args.username = input("Enter username: ")
+
+    if args.password is None:
+        args.password = input("Enter password: ")
+
     return args
 
 
@@ -75,10 +83,10 @@ if __name__ == "__main__":
     try:
         # HttpCommands() will do cd("/") -> stat("/")
         # that will check the connection to the nameserver
-        cmds = HttpCommands(args.nameserver)
+        cmds = HttpCommands(args)
         sdfsCmd = SdfsCmd(args.local, cmds)
-    except:
-        print("Faild to connect to {}".format(args.nameserver))
+    except Exception as e:
+        print("Faild to connect to nameserver({}): {}".format(args.nameserver, e))
         exit(-1)
 
     while not quit:
