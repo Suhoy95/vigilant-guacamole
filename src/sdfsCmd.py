@@ -144,11 +144,13 @@ class SdfsCmd(cmd.Cmd):
         """
         line = self._to_dfs_abs_path(line, isdir=True)
 
-        print("{:4} {: >30}\t{}".format("TYPE", "FILENAME", "FILESIZE"))
+        print("{:4} {: >30}\t{}\t{}".format(
+            "TYPE", "FILENAME", "FILESIZE", "NODES"))
         for f in self.cmds.ls(line):
             ftype = "D" if f['type'] == proto.DIRECTORY else "F"
-            print("{:4} {: >30}\t{}".format(
-                ftype, path.basename(f['path']), f['size']))
+            print("{:4} {: >30}\t{}\t{}".format(
+                ftype, path.basename(f['path']), f['size'], f['node'])
+            )
         pass
 
     def do_cd(self, line):
