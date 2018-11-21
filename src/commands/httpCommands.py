@@ -90,7 +90,12 @@ class HttpCommands(Commands):
         logging.debug(repr(operation))
         url = "https://{}/storage/download".format(operation['nodeAddress'])
 
-        resp = requests.post(url, json=operation, verify=False)
+        try:
+            resp = requests.post(url, json=operation, verify=False)
+        except IOError:
+            raise DfsException("Could not connect with storage {}".format(
+                operation['nodeAddress']))
+
         if resp.status_code == 400:
             error = resp.json()
             raise DfsHttpException("""[ERROR] Could not perform
@@ -129,10 +134,14 @@ class HttpCommands(Commands):
         url = "https://{}/storage/upload".format(operation['nodeAddress'])
         files = {'file': open(local_path, 'rb')}
 
-        resp = requests.post(
-            url, params={'operation': json.dumps(operation)},
-            files=files,
-            verify=False)
+        try:
+            resp = requests.post(
+                url, params={'operation': json.dumps(operation)},
+                files=files,
+                verify=False)
+        except IOError:
+            raise DfsException("Could not connect with storage {}".format(
+                operation['nodeAddress']))
 
         if resp.status_code == 400:
             error = resp.json()
